@@ -87,12 +87,24 @@ contract Getters is State {
         return _state.balance.redeemable;
     }
 
+    function totalCouponUnderlying() public view returns (uint256) {
+        return _state16.couponUnderlying;
+    }
+
     function totalCoupons() public view returns (uint256) {
         return _state.balance.coupons;
     }
 
     function totalNet() public view returns (uint256) {
         return dollar().totalSupply().sub(totalDebt());
+    }
+
+    function eraStatus() public view returns (Era.Status) {
+        return _state18.era.status;
+    }
+
+    function eraStart() public view returns (uint256) {
+        return _state18.era.start;
     }
 
     /**
@@ -118,12 +130,24 @@ contract Getters is State {
         return _state.accounts[account].coupons[epoch];
     }
 
+    function balanceOfCouponUnderlying(address account, uint256 epoch) public view returns (uint256) {
+        return _state16.couponUnderlyingByAccount[account][epoch];
+    }
+
     function statusOf(address account) public view returns (Account.Status) {
         if (_state.accounts[account].lockedUntil > epoch()) {
             return Account.Status.Locked;
         }
 
         return epoch() >= _state.accounts[account].fluidUntil ? Account.Status.Frozen : Account.Status.Fluid;
+    }
+
+    function fluidUntil(address account) public view returns (uint256) {
+        return _state.accounts[account].fluidUntil;
+    }
+
+    function lockedUntil(address account) public view returns (uint256) {
+        return _state.accounts[account].lockedUntil;
     }
 
     function allowanceCoupons(address owner, address spender) public view returns (uint256) {

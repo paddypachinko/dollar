@@ -17,24 +17,14 @@
 pragma solidity ^0.5.17;
 pragma experimental ABIEncoderV2;
 
-import "../dao/Market.sol";
 import "./MockState.sol";
+import "../dao/Stabilizer.sol";
 import "./MockComptroller.sol";
 
-contract MockMarket is MockState, MockComptroller, Market {
-    uint256 private _couponProratedStart;
-
+contract MockStabilizer is MockState, MockComptroller, Stabilizer {
     constructor(address pool) MockComptroller(pool) public { }
 
     function stepE() external {
-        Market.step();
-    }
-
-    function set(uint256 newCouponProratedStart) external {
-        _couponProratedStart = newCouponProratedStart;
-    }
-
-    function couponProratedStart() internal view returns (uint256) {
-        return _couponProratedStart;
+        super.step();
     }
 }

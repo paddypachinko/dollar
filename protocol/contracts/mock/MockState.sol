@@ -54,6 +54,10 @@ contract MockState is Setters {
         super.decrementTotalRedeemable(amount, reason);
     }
 
+    function updateEraE(Era.Status status) external {
+        super.updateEra(status);
+    }
+
     /**
      * Account
      */
@@ -78,8 +82,16 @@ contract MockState is Setters {
         super.incrementBalanceOfCoupons(account, epoch, amount);
     }
 
+    function incrementBalanceOfCouponUnderlyingE(address account, uint256 epoch, uint256 amount) external {
+        super.incrementBalanceOfCouponUnderlying(account, epoch, amount);
+    }
+
     function decrementBalanceOfCouponsE(address account, uint256 epoch, uint256 amount, string calldata reason) external {
         super.decrementBalanceOfCoupons(account, epoch, amount, reason);
+    }
+
+    function decrementBalanceOfCouponUnderlyingE(address account, uint256 epoch, uint256 amount, string calldata reason) external {
+        super.decrementBalanceOfCouponUnderlying(account, epoch, amount, reason);
     }
 
     function unfreezeE(address account) external {

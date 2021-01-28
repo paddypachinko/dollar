@@ -9,6 +9,7 @@ const MockImplA = contract.fromArtifact('MockImplA');
 const MockImplB = contract.fromArtifact('MockImplB');
 
 const VOTE_PERIOD = 9;
+const EXPIRATION = 3;
 const EMERGENCY_COMMIT_PERIOD = 6;
 
 const UNDECIDED = new BN(0);
@@ -256,8 +257,8 @@ describe('Govern', function () {
 
   describe('commit', function () {
     beforeEach(async function () {
-      await this.govern.incrementBalanceOfE(userAddress, INITIAL_STAKE_MULTIPLE.muln(2500));
-      await this.govern.incrementBalanceOfE(userAddress2, INITIAL_STAKE_MULTIPLE.muln(4000));
+      await this.govern.incrementBalanceOfE(userAddress, INITIAL_STAKE_MULTIPLE.muln(2000));
+      await this.govern.incrementBalanceOfE(userAddress2, INITIAL_STAKE_MULTIPLE.muln(4500));
       await this.govern.incrementBalanceOfE(userAddress3, INITIAL_STAKE_MULTIPLE.muln(3500));
       await this.govern.incrementTotalBondedE(10000);
     });
@@ -337,6 +338,21 @@ describe('Govern', function () {
       });
     });
 
+    describe('expired', function () {
+      beforeEach(async function () {
+        await this.govern.vote(this.implB.address, REJECT, {from: userAddress});
+        await this.govern.vote(this.implB.address, APPROVE, {from: userAddress2});
+        for(let i = 0; i < VOTE_PERIOD + EXPIRATION; i++) {
+          await this.govern.snapshotTotalBondedE();
+          await this.govern.incrementEpochE();
+        }
+      });
+
+      it('reverts', async function () {
+        await expectRevert(this.govern.commit(this.implB.address, {from: userAddress}), "Govern: Expired");
+      });
+    });
+
     describe('double commit - probably not possible in practice', function () {
       beforeEach(async function () {
         await this.govern.vote(this.implB.address, REJECT, {from: userAddress});
@@ -389,9 +405,9 @@ describe('Govern', function () {
 
     describe('ended with not enough approve votes', function () {
       beforeEach(async function () {
-        await this.govern.vote(this.implB.address, APPROVE, {from: userAddress});
-        await this.govern.vote(this.implB.address, APPROVE, {from: userAddress3});
-        await this.govern.vote(this.implB.address, REJECT, {from: userAddress2});
+        await this.govern.vote(this.implB.address, REJECT, {from: userAddress});
+        await this.govern.vote(this.implB.address, REJECT, {from: userAddress3});
+        await this.govern.vote(this.implB.address, APPROVE, {from: userAddress2});
 
         const epoch = await this.govern.epoch();
         await this.govern.setEpochTime(epoch + EMERGENCY_COMMIT_PERIOD);

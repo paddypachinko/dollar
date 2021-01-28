@@ -211,6 +211,43 @@ describe('State', function () {
     });
   });
 
+  describe('updateEra', function () {
+    beforeEach('call', async function () {
+      await this.setters.incrementEpochE();
+    });
+
+    describe('before called', function () {
+      it('is 0', async function () {
+        expect(await this.setters.eraStatus()).to.be.bignumber.equal(new BN(0));
+        expect(await this.setters.eraStart()).to.be.bignumber.equal(new BN(0));
+      });
+    });
+
+    describe('when called change', function () {
+      beforeEach('call', async function () {
+        await this.setters.updateEraE(1);
+      });
+
+      it('is update', async function () {
+        expect(await this.setters.eraStatus()).to.be.bignumber.equal(new BN(1));
+        expect(await this.setters.eraStart()).to.be.bignumber.equal(new BN(1));
+      });
+    });
+
+    describe('when called twi', function () {
+      beforeEach('call', async function () {
+        await this.setters.updateEraE(1);
+        await this.setters.incrementEpochE();
+        await this.setters.updateEraE(0);
+      });
+
+      it('is update', async function () {
+        expect(await this.setters.eraStatus()).to.be.bignumber.equal(new BN(0));
+        expect(await this.setters.eraStart()).to.be.bignumber.equal(new BN(2));
+      });
+    });
+  });
+
   /**
    * Account
    */
@@ -332,6 +369,25 @@ describe('State', function () {
     });
   });
 
+  describe('incrementBalanceOfCouponUnderlying', function () {
+    const epoch = 1;
+
+    describe('when called', function () {
+      beforeEach('call', async function () {
+        await this.setters.incrementBalanceOfCouponUnderlyingE(userAddress, epoch, 100);
+        await this.setters.incrementBalanceOfCouponUnderlyingE(userAddress, epoch, 100);
+      });
+
+      it('increments balance of coupons for user during epoch', async function () {
+        expect(await this.setters.balanceOfCouponUnderlying(userAddress, epoch)).to.be.bignumber.equal(new BN(200));
+      });
+
+      it('increments total outstanding coupons', async function () {
+        expect(await this.setters.totalCouponUnderlying()).to.be.bignumber.equal(new BN(200));
+      });
+    });
+  });
+
   describe('decrementBalanceOfCoupons', function () {
     const epoch = 1;
 
@@ -362,7 +418,39 @@ describe('State', function () {
 
       it('reverts', async function () {
         await expectRevert(
-          this.setters.decrementBalanceOfCouponsE(200, epoch, "decrementBalanceOfCouponsE"),
+          this.setters.decrementBalanceOfCouponsE(userAddress, 200, epoch, "decrementBalanceOfCouponsE"),
+          "decrementBalanceOfCoupons");
+      });
+    });
+  });
+
+  describe('decrementBalanceOfCouponUnderlying', function () {
+    const epoch = 1;
+
+    describe('when called', function () {
+      beforeEach('call', async function () {
+        await this.setters.incrementBalanceOfCouponUnderlyingE(userAddress, epoch, 500);
+        await this.setters.decrementBalanceOfCouponUnderlyingE(userAddress, epoch, 100, "decrementBalanceOfCouponsE - 1");
+        await this.setters.decrementBalanceOfCouponUnderlyingE(userAddress, epoch, 100, "decrementBalanceOfCouponsE - 2");
+      });
+
+      it('decrements balance of coupons for user during epoch', async function () {
+        expect(await this.setters.balanceOfCouponUnderlying(userAddress, epoch)).to.be.bignumber.equal(new BN(300));
+      });
+
+      it('decrements total outstanding coupons', async function () {
+        expect(await this.setters.totalCouponUnderlying()).to.be.bignumber.equal(new BN(300));
+      });
+    });
+
+    describe('when called erroneously', function () {
+      beforeEach('call', async function () {
+        await this.setters.incrementBalanceOfCouponUnderlyingE(userAddress, epoch, 100);
+      });
+
+      it('reverts', async function () {
+        await expectRevert(
+          this.setters.decrementBalanceOfCouponUnderlyingE(userAddress, 200, epoch, "decrementBalanceOfCouponsE"),
           "decrementBalanceOfCouponsE");
       });
     });
@@ -422,6 +510,7 @@ describe('State', function () {
     describe('before called', function () {
       it('is frozen', async function () {
         expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(0));
+        expect(await this.setters.fluidUntil(userAddress)).to.be.bignumber.equal(new BN(0));
       });
     });
 
@@ -432,17 +521,33 @@ describe('State', function () {
 
       it('is fluid', async function () {
         expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(1));
+        expect(await this.setters.fluidUntil(userAddress)).to.be.bignumber.equal(new BN(15));
       });
     });
 
-    describe('when called then advanced', function () {
+    describe('when called then advanced within lockup', function () {
       beforeEach('call', async function () {
         await this.setters.unfreezeE(userAddress);
         await this.setters.incrementEpochE();
       });
 
+      it('is fluid', async function () {
+        expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(1));
+        expect(await this.setters.fluidUntil(userAddress)).to.be.bignumber.equal(new BN(15));
+      });
+    });
+
+    describe('when called then advanced after lockup', function () {
+      beforeEach('call', async function () {
+        await this.setters.unfreezeE(userAddress);
+        for (var i = 0; i < 15; i++) {
+          await this.setters.incrementEpochE();
+        }
+      });
+
       it('is frozen', async function () {
         expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(0));
+        expect(await this.setters.fluidUntil(userAddress)).to.be.bignumber.equal(new BN(15));
       });
     });
   });
@@ -936,6 +1041,7 @@ describe('State', function () {
       it('should have locked user', async function () {
         expect(await this.setters.isNominated(candidate)).to.be.equal(true);
         expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(2));
+        expect(await this.setters.lockedUntil(userAddress)).to.be.bignumber.equal(new BN(8));
       });
     });
 
@@ -955,6 +1061,7 @@ describe('State', function () {
       it('should have unlocked user', async function () {
         expect(await this.setters.isNominated(candidate)).to.be.equal(true);
         expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(0));
+        expect(await this.setters.lockedUntil(userAddress)).to.be.bignumber.equal(new BN(8));
       });
     });
 
@@ -981,6 +1088,7 @@ describe('State', function () {
           expect(await this.setters.isNominated(candidate)).to.be.equal(true);
           expect(await this.setters.isNominated(ownerAddress)).to.be.equal(true);
           expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(2));
+          expect(await this.setters.lockedUntil(userAddress)).to.be.bignumber.equal(new BN(10));
         });
       });
 
@@ -998,6 +1106,7 @@ describe('State', function () {
         it('should have unlocked user', async function () {
           expect(await this.setters.isNominated(candidate)).to.be.equal(true);
           expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(0));
+          expect(await this.setters.lockedUntil(userAddress)).to.be.bignumber.equal(new BN(10));
         });
       });
     });
@@ -1024,6 +1133,7 @@ describe('State', function () {
           expect(await this.setters.isNominated(candidate)).to.be.equal(true);
           expect(await this.setters.isNominated(ownerAddress)).to.be.equal(true);
           expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(2));
+          expect(await this.setters.lockedUntil(userAddress)).to.be.bignumber.equal(new BN(10));
         });
       });
 
@@ -1041,6 +1151,7 @@ describe('State', function () {
         it('should have unlocked user', async function () {
           expect(await this.setters.isNominated(candidate)).to.be.equal(true);
           expect(await this.setters.statusOf(userAddress)).to.be.bignumber.equal(new BN(0));
+          expect(await this.setters.lockedUntil(userAddress)).to.be.bignumber.equal(new BN(10));
         });
       });
     });

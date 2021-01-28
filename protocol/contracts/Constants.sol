@@ -51,30 +51,38 @@ library Constants {
     uint256 private constant CURRENT_EPOCH_PERIOD = 28800;
 
     /* Governance */
-    uint256 private constant GOVERNANCE_PERIOD = 9;
-    uint256 private constant GOVERNANCE_QUORUM = 33e16; // 33%
-    uint256 private constant GOVERNANCE_SUPER_MAJORITY = 66e16; // 66%
+    uint256 private constant GOVERNANCE_PERIOD = 9; // 9 epochs
+    uint256 private constant GOVERNANCE_EXPIRATION = 2; // 2 + 1 epochs
+    uint256 private constant GOVERNANCE_QUORUM = 20e16; // 20%
+    uint256 private constant GOVERNANCE_PROPOSAL_THRESHOLD = 5e15; // 0.5%
+    uint256 private constant GOVERNANCE_SUPER_MAJORITY = 40e16; // 40%
     uint256 private constant GOVERNANCE_EMERGENCY_DELAY = 6; // 6 epochs
 
     /* DAO */
-    uint256 private constant ADVANCE_INCENTIVE = 1e20; // 100 ESD
+    uint256 private constant ADVANCE_INCENTIVE = 1e21; // 1000 ESD
+    uint256 private constant DAO_EXIT_LOCKUP_EPOCHS = 15; // 15 epochs fluid
+
+    /* Pool */
+    uint256 private constant POOL_EXIT_LOCKUP_EPOCHS = 5; // 5 epochs fluid
 
     /* Market */
     uint256 private constant COUPON_EXPIRATION = 90;
-    uint256 private constant DEBT_RATIO_CAP = 35e16; // 35%
+    uint256 private constant DEBT_RATIO_CAP = 20e16; // 20%
+    uint256 private constant COUPON_PRORATED_START = 420; // epoch 420
 
     /* Regulator */
     uint256 private constant SUPPLY_CHANGE_LIMIT = 3e16; // 3%
+    uint256 private constant COUPON_SUPPLY_CHANGE_LIMIT = 6e16; // 6%
     uint256 private constant ORACLE_POOL_RATIO = 20; // 20%
+    uint256 private constant TREASURY_RATIO = 250; // 2.5%
+    uint256 private constant STABILITY_REWARD_MIN = 0.3e14; // 0.3 bps
+    uint256 private constant STABILITY_REWARD_RATE = 5e14; // 5 bps
 
     /* Deployed */
     address private constant DAO_ADDRESS = address(0x443D2f2755DB5942601fa062Cc248aAA153313D3);
     address private constant DOLLAR_ADDRESS = address(0x36F3FD68E7325a35EB768F1AedaAe9EA0689d723);
     address private constant PAIR_ADDRESS = address(0x88ff79eB2Bc5850F27315415da8685282C7610F9);
-
-    /* Pool Migration */
-    address private constant LEGACY_POOL_ADDRESS = address(0xdF0Ae5504A48ab9f913F8490fBef1b9333A68e68);
-    uint256 private constant LEGACY_POOL_REWARD = 1e18; // 1 ESD
+    address private constant TREASURY_ADDRESS = address(0x460661bd4A5364A3ABCc9cfc4a8cE7038d05Ea22);
 
     /**
      * Getters
@@ -124,8 +132,16 @@ library Constants {
         return GOVERNANCE_PERIOD;
     }
 
+    function getGovernanceExpiration() internal pure returns (uint256) {
+        return GOVERNANCE_EXPIRATION;
+    }
+
     function getGovernanceQuorum() internal pure returns (Decimal.D256 memory) {
         return Decimal.D256({value: GOVERNANCE_QUORUM});
+    }
+
+    function getGovernanceProposalThreshold() internal pure returns (Decimal.D256 memory) {
+        return Decimal.D256({value: GOVERNANCE_PROPOSAL_THRESHOLD});
     }
 
     function getGovernanceSuperMajority() internal pure returns (Decimal.D256 memory) {
@@ -140,6 +156,14 @@ library Constants {
         return ADVANCE_INCENTIVE;
     }
 
+    function getDAOExitLockupEpochs() internal pure returns (uint256) {
+        return DAO_EXIT_LOCKUP_EPOCHS;
+    }
+
+    function getPoolExitLockupEpochs() internal pure returns (uint256) {
+        return POOL_EXIT_LOCKUP_EPOCHS;
+    }
+
     function getCouponExpiration() internal pure returns (uint256) {
         return COUPON_EXPIRATION;
     }
@@ -148,12 +172,32 @@ library Constants {
         return Decimal.D256({value: DEBT_RATIO_CAP});
     }
 
+    function getCouponProratedStart() internal pure returns (uint256) {
+        return COUPON_PRORATED_START;
+    }
+
     function getSupplyChangeLimit() internal pure returns (Decimal.D256 memory) {
         return Decimal.D256({value: SUPPLY_CHANGE_LIMIT});
     }
 
+    function getCouponSupplyChangeLimit() internal pure returns (Decimal.D256 memory) {
+        return Decimal.D256({value: COUPON_SUPPLY_CHANGE_LIMIT});
+    }
+
     function getOraclePoolRatio() internal pure returns (uint256) {
         return ORACLE_POOL_RATIO;
+    }
+
+    function getTreasuryRatio() internal pure returns (uint256) {
+        return TREASURY_RATIO;
+    }
+
+    function getStabilityRewardMin() internal pure returns (Decimal.D256 memory) {
+        return Decimal.D256({value: STABILITY_REWARD_MIN});
+    }
+
+    function getStabilityRewardRate() internal pure returns (Decimal.D256 memory) {
+        return Decimal.D256({value: STABILITY_REWARD_RATE});
     }
 
     function getChainId() internal pure returns (uint256) {
@@ -172,11 +216,7 @@ library Constants {
         return PAIR_ADDRESS;
     }
 
-    function getLegacyPoolAddress() internal pure returns (address) {
-        return LEGACY_POOL_ADDRESS;
-    }
-
-    function getLegacyPoolReward() internal pure returns (uint256) {
-        return LEGACY_POOL_REWARD;
+    function getTreasuryAddress() internal pure returns (address) {
+        return TREASURY_ADDRESS;
     }
 }

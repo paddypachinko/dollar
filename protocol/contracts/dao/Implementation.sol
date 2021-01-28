@@ -23,8 +23,9 @@ import "./Regulator.sol";
 import "./Bonding.sol";
 import "./Govern.sol";
 import "../Constants.sol";
+import "./Stabilizer.sol";
 
-contract Implementation is State, Bonding, Market, Regulator, Govern {
+contract Implementation is State, Bonding, Market, Regulator, Stabilizer, Govern {
     using SafeMath for uint256;
 
     event Advance(uint256 indexed epoch, uint256 block, uint256 timestamp);
@@ -32,26 +33,24 @@ contract Implementation is State, Bonding, Market, Regulator, Govern {
 
     function initialize() initializer public {
         // Reward committer
-        mintToAccount(msg.sender, Constants.getAdvanceIncentive());
+        incentivize(msg.sender, Constants.getAdvanceIncentive());
+        // Dev rewards
+
     }
 
-    function advance() external incentivized {
+    function advance() external {
+        incentivize(msg.sender, Constants.getAdvanceIncentive());
+
         Bonding.step();
         Regulator.step();
         Market.step();
+        Stabilizer.step();
 
         emit Advance(epoch(), block.number, block.timestamp);
     }
 
-    modifier incentivized {
-        // Mint advance reward to sender
-        uint256 incentive = Constants.getAdvanceIncentive();
-        mintToAccount(msg.sender, incentive);
-        emit Incentivization(msg.sender, incentive);
-
-        // Mint legacy pool reward for migration
-        mintToAccount(Constants.getLegacyPoolAddress(), Constants.getLegacyPoolReward());
-
-        _;
+    function incentivize(address account, uint256 amount) private {
+        mintToAccount(account, amount);
+        emit Incentivization(account, amount);
     }
 }
